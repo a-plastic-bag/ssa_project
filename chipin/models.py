@@ -1,5 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
+import math
+from decimal import Decimal
 
 class Group(models.Model):
     name = models.CharField(max_length=100)
@@ -39,7 +41,10 @@ class Event(models.Model):
         members_count = self.members.count()
         if members_count == 0:
             return 0
-        return self.total_spend / members_count
+        share = self.total_spend / members_count
+        # Round share up to nearest cent
+        rounded_share = Decimal(format(math.ceil(share * 100) / 100, '.2f'))
+        return rounded_share
 
     def check_status(self):
         """ Check if all members' max spend can cover the event. """
