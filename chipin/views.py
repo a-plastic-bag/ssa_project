@@ -50,16 +50,20 @@ def group_detail(request, group_id, edit_comment_id=None):
     else:
         comment_to_edit = None
     if request.method == 'POST':
-        if comment_to_edit: # Editing an existing comment
-            form = CommentForm(request.POST, instance=comment_to_edit)
-        else: # Adding a new comment
-            form = CommentForm(request.POST)
-        if form.is_valid():
-            comment = form.save(commit=False)
-            comment.user = request.user
-            comment.group = group
-            comment.save()
-            return redirect('chipin:group_detail', group_id=group.id)
+        if request.user in group.members.all():
+            if comment_to_edit: # Editing an existing comment
+                form = CommentForm(request.POST, instance=comment_to_edit)
+            else: # Adding a new comment
+                form = CommentForm(request.POST)
+            if form.is_valid():
+                comment = form.save(commit=False)
+                comment.user = request.user
+                comment.group = group
+                comment.save()
+                return redirect('chipin:group_detail', group_id=group.id)
+        else:
+            messages.error(request, "You are not a member of this group.")
+            form = CommentForm()
     else:
         form = CommentForm(instance=comment_to_edit) if comment_to_edit else CommentForm()
     # Calculate event share for each event and check user eligibility
