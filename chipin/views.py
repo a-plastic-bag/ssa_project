@@ -243,6 +243,9 @@ def join_event(request, group_id, event_id):
     event = get_object_or_404(Event, id=event_id, group=group)
     event_share = event.calculate_share()  
     # Check if the user is eligible to join based on their max spend
+    if request.user not in group.members.all():
+        messages.error(request, "You are not a member of this group.")
+        return redirect('chipin:group_detail', group_id=group.id)
     if request.user.profile.max_spend < event_share:
         messages.error(request, f"Your max spend of ${request.user.profile.max_spend} is too low to join this event.")
         return redirect('chipin:group_detail', group_id=group.id)
