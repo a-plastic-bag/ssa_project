@@ -78,6 +78,7 @@ def group_detail(request, group_id, edit_comment_id=None):
             'status': event.status,
             'joined': user_has_joined
         }
+    join_requests = group.join_requests.all().order_by('-created_at').filter(is_approved=False)
     # Return data to the template
     return render(request, 'chipin/group_detail.html', {
         'group': group,
@@ -86,6 +87,7 @@ def group_detail(request, group_id, edit_comment_id=None):
         'comment_to_edit': comment_to_edit,
         'events': events,
         'event_share_info': event_share_info,
+        'join_requests': join_requests
     })
 
 @login_required
