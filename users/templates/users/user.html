@@ -3,7 +3,9 @@
 {% block title %}User Management{% endblock %}
 
 {% block content %} 
-    <h2>Welcome {{ request.user.first_name }}</h2>
+    <h1>Welcome, {{ user.first_name }}</h1>
     <p>This page is for user management functions.</p>
+    <p><b>Current Balance:</b> ${{ balance }}</p>
+    <a href="{% url 'users:topup' %}">Top Up Balance</a>
     <a href="{% url 'chipin:home' %}">Click through to ChipIn Functions</a>
 {% endblock %}

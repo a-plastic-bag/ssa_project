@@ -4,13 +4,18 @@ from django.urls import reverse
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from .forms import UserRegistrationForm
+from .forms import UserRegistrationForm, TopUpForm
 import requests
 from django.conf import settings
+from .models import Transaction
 
 @login_required(login_url='users:login')
 def user(request):
-    return render(request, "users/user.html")
+    profile = request.user.profile
+    return render(request, 'users/user.html', {
+        'user': request.user,
+        'balance': profile.balance
+    })
 
 def login_view(request):
     if request.method == "POST":
@@ -58,3 +63,24 @@ def register(request):
     else:
         form = UserRegistrationForm()
     return render(request, 'users/register.html', {'form': form})
+
+@login_required
+def top_up_balance(request):
+    profile = request.user.profile
+    form = TopUpForm(request.POST)
+    if form.is_valid():
+        amount = form.cleaned_data['amount']
+        profile.balance += amount
+        profile.save()
+        Transaction.objects.create(user=request.user, amount=amount)
+        messages.success(request, f"Your balance has been topped up by ${amount}.")
+        return redirect('users:user')
+    else:
+        form = TopUpForm()
+    context = {
+        'form': form,
+        'user': request.user,
+        'balance': request.user.profile.balance,
+        'welcome_message': f"Welcome back, {request.user.first_name}!"
+    }
+    return render(request, 'users/top-up.html', context) 
