@@ -91,7 +91,8 @@ def group_detail(request, group_id, edit_comment_id=None):
 @login_required
 def delete_group(request, group_id):
     group = get_object_or_404(Group, id=group_id)
-    if request.user == group.admin:
+    if request.user == group.admin: #Only the group admin should be able to delete a group. However, there is a risk if group.admin is not correctly enforced in the Group model or database schema. If someone modifies the database directly, they can impersonate an admin.
+#Recommendation: Ensure database constraints and field validation protect the admin field integrity. Use Django permissions and groups or custom decorators for more granular access control.
         group.delete()
         messages.success(request, f'Group "{group.name}" has been deleted.')
     else:
@@ -139,7 +140,7 @@ def accept_invite(request, group_id):
 def request_to_join_group(request, group_id):
     group = get_object_or_404(Group, id=group_id)
     # Check if the user is already a member
-    if request.user in group.members.all():
+    if request.user in group.members.all(): 
         messages.info(request, "You are already a member of this group.")
         return redirect('chipin:group_detail', group_id=group.id)
     # Check if the user has already submitted a join request
@@ -177,7 +178,10 @@ def vote_on_join_request(request, group_id, request_id, vote):
     group = get_object_or_404(Group, id=group_id)
     join_request = get_object_or_404(GroupJoinRequest, id=request_id) 
     if request.user not in group.members.all():
-        messages.error(request, "You must be a member of the group to vote.")
+        messages.error(request, "You must be a member of the group to vote.")# This ensures only group members can vote, but if group membership validation is bypassed, malicious actors could vote improperly.
+#Recommendation:
+#Add database constraints to ensure only authenticated and verified group members can cast votes.
+#Consider adding more granular voting permissions in the database schema and API views to safeguard against direct manipulation.
         return redirect('chipin:group_detail', group_id=group.id)  
     if request.user in join_request.votes.all():
         messages.info(request, "You have already voted.")
