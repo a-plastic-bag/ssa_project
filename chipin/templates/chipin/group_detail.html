@@ -24,15 +24,18 @@
     <!-- Only list Join Requests for groups of which the current user is a member. -->
     {% if request.user in group.members.all %}
         <h2>Join Requests</h2>
-        <ul>
-            {% for request in group.join_requests.all %}
+            <ul>    
+            {% for request in join_requests %}
                 <li>{{ request.user.username }} has requested to join.</li>
                 {% if request.user not in group.members.all and request.user != group.admin %}
                     <a href="{% url 'chipin:vote_on_join_request' group.id request.id 'approve' %}">Approve</a>
                     <a href="{% url 'chipin:vote_on_join_request' group.id request.id 'reject' %}">Reject</a>
                 {% endif %}
+            {% empty %}
+                </ul>
+                <p>No current join requests.</p>
             {% endfor %}
-        </ul>
+            </ul>
     {% endif %}
 
     <h2>Group Chat</h2>

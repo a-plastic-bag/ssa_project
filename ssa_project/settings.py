@@ -20,12 +20,19 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-z0t68#b2(&m@2ce#ua9c)xn@40u2@qgmvie7vdw35h&!51jtek"
+SECRET_KEY = "django-insecure-z0t68#b2(&m@2ce#ua9c)xn@40u2@qgmvie7vdw35h&!51jtek" #Risk: Having the SECRET_KEY hardcoded is a security vulnerability. If an attacker gets access to this key, it compromises session data encryption and password hashing.
+
+# Recommendation: Move the SECRET_KEY to environment variables or a .env file.
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = True #Risk: Running Django with DEBUG turned on in production exposes sensitive information like stack traces, error details, and file paths.
+#Recommendation: Set DEBUG to False in a production environment.
 
-ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
+
+ALLOWED_HOSTS = ["127.0.0.1", "localhost"] #Risk: In production, only allowing localhost and 127.0.0.1 exposes your app to local development, which is not suitable for production.
+#Recommendation: Use wildcard or environment variables to set ALLOWED_HOSTS dynamically.
+
+
 
 
 # Application definition
@@ -133,4 +140,5 @@ STATIC_URL = "static/"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-RECAPTCHA_SECRET_KEY = "6LdC3noqAAAAAMsPwfLKkZYwiESDPlf3D4FLf6dG"
+RECAPTCHA_SECRET_KEY = "6LdC3noqAAAAAMsPwfLKkZYwiESDPlf3D4FLf6dG"#Risk: Exposing API keys like ReCAPTCHA directly in the settings file puts you at risk of key theft, which could be exploited by attackers.
+#Recommendation: Move secrets like ReCAPTCHA keys to environment variables.

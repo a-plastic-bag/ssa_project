@@ -50,16 +50,20 @@ def group_detail(request, group_id, edit_comment_id=None):
     else:
         comment_to_edit = None
     if request.method == 'POST':
-        if comment_to_edit: # Editing an existing comment
-            form = CommentForm(request.POST, instance=comment_to_edit)
-        else: # Adding a new comment
-            form = CommentForm(request.POST)
-        if form.is_valid():
-            comment = form.save(commit=False)
-            comment.user = request.user
-            comment.group = group
-            comment.save()
-            return redirect('chipin:group_detail', group_id=group.id)
+        if request.user in group.members.all():
+            if comment_to_edit: # Editing an existing comment
+                form = CommentForm(request.POST, instance=comment_to_edit)
+            else: # Adding a new comment
+                form = CommentForm(request.POST)
+            if form.is_valid():
+                comment = form.save(commit=False)
+                comment.user = request.user
+                comment.group = group
+                comment.save()
+                return redirect('chipin:group_detail', group_id=group.id)
+        else:
+            messages.error(request, "You are not a member of this group.")
+            form = CommentForm()
     else:
         form = CommentForm(instance=comment_to_edit) if comment_to_edit else CommentForm()
     # Calculate event share for each event and check user eligibility
@@ -74,6 +78,7 @@ def group_detail(request, group_id, edit_comment_id=None):
             'status': event.status,
             'joined': user_has_joined
         }
+    join_requests = group.join_requests.all().order_by('-created_at').filter(is_approved=False)
     # Return data to the template
     return render(request, 'chipin/group_detail.html', {
         'group': group,
@@ -82,12 +87,14 @@ def group_detail(request, group_id, edit_comment_id=None):
         'comment_to_edit': comment_to_edit,
         'events': events,
         'event_share_info': event_share_info,
+        'join_requests': join_requests
     })
 
 @login_required
 def delete_group(request, group_id):
     group = get_object_or_404(Group, id=group_id)
-    if request.user == group.admin:
+    if request.user == group.admin: #Only the group admin should be able to delete a group. However, there is a risk if group.admin is not correctly enforced in the Group model or database schema. If someone modifies the database directly, they can impersonate an admin.
+#Recommendation: Ensure database constraints and field validation protect the admin field integrity. Use Django permissions and groups or custom decorators for more granular access control.
         group.delete()
         messages.success(request, f'Group "{group.name}" has been deleted.')
     else:
@@ -135,7 +142,7 @@ def accept_invite(request, group_id):
 def request_to_join_group(request, group_id):
     group = get_object_or_404(Group, id=group_id)
     # Check if the user is already a member
-    if request.user in group.members.all():
+    if request.user in group.members.all(): 
         messages.info(request, "You are already a member of this group.")
         return redirect('chipin:group_detail', group_id=group.id)
     # Check if the user has already submitted a join request
@@ -173,7 +180,10 @@ def vote_on_join_request(request, group_id, request_id, vote):
     group = get_object_or_404(Group, id=group_id)
     join_request = get_object_or_404(GroupJoinRequest, id=request_id) 
     if request.user not in group.members.all():
-        messages.error(request, "You must be a member of the group to vote.")
+        messages.error(request, "You must be a member of the group to vote.")# This ensures only group members can vote, but if group membership validation is bypassed, malicious actors could vote improperly.
+#Recommendation:
+#Add database constraints to ensure only authenticated and verified group members can cast votes.
+#Consider adding more granular voting permissions in the database schema and API views to safeguard against direct manipulation.
         return redirect('chipin:group_detail', group_id=group.id)  
     if request.user in join_request.votes.all():
         messages.info(request, "You have already voted.")
@@ -239,6 +249,9 @@ def join_event(request, group_id, event_id):
     event = get_object_or_404(Event, id=event_id, group=group)
     event_share = event.calculate_share()  
     # Check if the user is eligible to join based on their max spend
+    if request.user not in group.members.all():
+        messages.error(request, "You are not a member of this group.")
+        return redirect('chipin:group_detail', group_id=group.id)
     if request.user.profile.max_spend < event_share:
         messages.error(request, f"Your max spend of ${request.user.profile.max_spend} is too low to join this event.")
         return redirect('chipin:group_detail', group_id=group.id)
